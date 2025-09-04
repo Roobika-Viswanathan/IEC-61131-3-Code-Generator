@@ -151,7 +151,7 @@ export function ResponseRenderer({ message, timestamp }) {
                       )}
                     </Button>
                   </div>
-                  <p className="whitespace-pre-wrap leading-relaxed text-[15px] font-medium">{response.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{response.content}</p>
                   {renderValidation(response.validation)}
                 </div>
               );
@@ -242,7 +242,7 @@ export function ResponseRenderer({ message, timestamp }) {
           )}
         </Button>
       </div>
-      <p className="whitespace-pre-wrap leading-relaxed text-[15px] font-medium">{safeDisplay}</p>
+      <p className="whitespace-pre-wrap leading-relaxed">{safeDisplay}</p>
       {timestamp && (
         <div className="text-xs mt-1 text-gray-500">
           {new Date(timestamp).toLocaleTimeString([], { 

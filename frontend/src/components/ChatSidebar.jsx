@@ -66,12 +66,13 @@ export function ChatSidebar({
   return (
     <div className="w-80 h-full bg-gray-50 border-r border-gray-200 flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">        <Button 
+      <div className="p-4 border-b border-gray-200">
+        <Button 
           onClick={onNewChat}
-          className="w-full flex items-center gap-2 text-base"
+          className="w-full flex items-center gap-2"
           disabled={isLoading}
         >
-          <PlusIcon className="w-5 h-5" />
+          <PlusIcon className="w-4 h-4" />
           New Chat
         </Button>
       </div>
@@ -81,10 +82,11 @@ export function ChatSidebar({
         {isLoading ? (
           <div className="p-4 text-center text-gray-500">
             <div className="animate-pulse">Loading chats...</div>
-          </div>        ) : sessions.length === 0 ? (
+          </div>
+        ) : sessions.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
             <ChatBubbleLeftIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p className="text-base">No chats yet</p>
+            <p>No chats yet</p>
             <p className="text-sm">Start a new conversation!</p>
           </div>
         ) : (
@@ -107,7 +109,7 @@ export function ChatSidebar({
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           onKeyDown={(e) => handleKeyPress(e, session.session_id)}
-                          className="h-6 text-base"
+                          className="h-6 text-sm"
                           autoFocus
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -134,20 +136,21 @@ export function ChatSidebar({
                           <XMarkIcon className="w-3 h-3" />
                         </Button>
                       </div>
-                    ) : (                      <div>
-                        <h3 className="font-medium text-base truncate">
+                    ) : (
+                      <div>
+                        <h3 className="font-medium text-sm truncate">
                           {session.title}
                         </h3>
                         {session.last_message && (
-                          <p className="text-sm text-gray-500 truncate mt-1">
+                          <p className="text-xs text-gray-500 truncate mt-1">
                             {session.last_message}
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {session.message_count} messages
                           </span>
-                          <span className="text-sm text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {formatDate(session.updated_at)}
                           </span>
                         </div>
