@@ -117,38 +117,33 @@ export class ChatService {
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      }      const data = await response.json();
       
-      // Return the structured response if available, otherwise the raw response
-      if (data.structured_response) {
-        return data.structured_response;
-      } else {
-        // Try to parse the response as JSON array (should always be array due to schema)
-        if (typeof data.response === 'string') {
-          try {
-            const parsed = JSON.parse(data.response);
-            
-            // Response should always be an array due to response schema
-            if (Array.isArray(parsed)) {
-              const validResponses = parsed.every(item => 
-                item && typeof item === 'object' && item.type && item.content
-              );
-              if (validResponses) {
-                return { responses: parsed };
-              }
+      // Always parse the response content consistently
+      if (typeof data.response === 'string') {
+        try {
+          const parsed = JSON.parse(data.response);
+          
+          // Response should always be an array due to response schema
+          if (Array.isArray(parsed)) {
+            const validResponses = parsed.every(item => 
+              item && typeof item === 'object' && item.type && item.content
+            );
+            if (validResponses) {
+              return { responses: parsed };
             }
-            
-          } catch (e) {
-            // Not JSON, return as text fallback
           }
+          
+        } catch (e) {
+          // Not JSON, return as text
         }
-        return {
-          type: "text",
-          content: data.response
-        };
       }
+      
+      // Fallback to text response
+      return {
+        type: "text",
+        content: data.response || "No response received"
+      };
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;

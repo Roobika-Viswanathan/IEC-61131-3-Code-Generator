@@ -37,7 +37,6 @@ class GeminiService:
                         }
                     },
                     "required": ["type", "content"],
-                    "additionalProperties": False
                 }
             }
             

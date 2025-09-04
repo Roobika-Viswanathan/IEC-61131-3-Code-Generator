@@ -197,8 +197,7 @@ async def send_message_to_session(
                 for resp in parsed_response:
                     if (isinstance(resp, dict) and 
                         "type" in resp and "content" in resp and 
-                        resp["type"] in valid_types):
-                        responses.append(StructuredResponse(
+                        resp["type"] in valid_types):                        responses.append(StructuredResponse(
                             type=resp["type"],
                             content=resp["content"]
                         ))
@@ -208,17 +207,21 @@ async def send_message_to_session(
                 
                 if valid_responses and responses:
                     structured_response = MultipleStructuredResponse(responses=responses)
+                    # Store the structured response as JSON for consistency
                     content_to_store = json.dumps(parsed_response)
                 else:
                     # Fallback to plain text if validation fails
                     content_to_store = clean_response
+                    structured_response = None
             else:
                 # Unexpected format (not array), treat as plain text
                 content_to_store = clean_response
+                structured_response = None
                 
         except json.JSONDecodeError:
             # If not valid JSON, treat as plain text
             content_to_store = clean_response
+            structured_response = None
         
         # Add AI response to session
         firestore_service.add_message_to_session(
@@ -227,10 +230,10 @@ async def send_message_to_session(
             role="assistant",
             content=content_to_store
         )
-        
+
         return ChatResponse(
-            response=content_to_store,  # Return the cleaned/parsed content
-            structured_response=structured_response,
+            response=content_to_store,  # Always return the stored content
+            structured_response=None,  # Don't return structured_response to avoid confusion
             success=True
         )
         

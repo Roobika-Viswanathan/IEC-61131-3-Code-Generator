@@ -65,7 +65,6 @@ export function Home() {
       setIsLoadingSessions(false);
     }
   };
-
   const selectSession = async (sessionId) => {
     try {
       setIsLoadingMessages(true);
@@ -73,11 +72,28 @@ export function Home() {
       const sessionMessages = await chatService.getSessionMessages(sessionId);
       
       // Convert to the format expected by the UI
-      const formattedMessages = sessionMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp
-      }));
+      const formattedMessages = sessionMessages.map(msg => {
+        let content = msg.content;
+        
+        // If content is a string, try to parse it as JSON for structured responses
+        if (typeof content === 'string' && msg.role === 'assistant') {
+          try {
+            const parsed = JSON.parse(content);
+            // If it successfully parses and looks like a structured response, use the parsed version
+            if (parsed && (Array.isArray(parsed) || (parsed.responses && Array.isArray(parsed.responses)) || (parsed.type && parsed.content))) {
+              content = parsed;
+            }
+          } catch (e) {
+            // If parsing fails, keep as string
+          }
+        }
+        
+        return {
+          role: msg.role,
+          content: content,
+          timestamp: msg.timestamp
+        };
+      });
       
       setMessages(formattedMessages);
     } catch (error) {
@@ -160,22 +176,12 @@ export function Home() {
 
     // Add user message to UI immediately
     const userMessage = { role: 'user', content: text, timestamp: new Date() };
-    setMessages(prev => [...prev, userMessage]);
-
-    try {
+    setMessages(prev => [...prev, userMessage]);    try {
       // Send message to backend - it will handle adding to Firestore
       const assistantReply = await chatService.sendMessage(currentSessionId, text, messages);
       
-      // Handle structured response - store as JSON string but display properly
-      let contentToStore;
-      if (assistantReply && typeof assistantReply === 'object' && 
-          (assistantReply.type || assistantReply.responses)) {
-        // It's a structured response (single or multiple), store as JSON string
-        contentToStore = JSON.stringify(assistantReply);
-      } else {
-        // It's a plain text response
-        contentToStore = assistantReply;
-      }
+      // Store the structured response directly - ResponseRenderer will handle parsing
+      let contentToStore = assistantReply;
       
       // Add assistant reply to UI
       const assistantMessage = { role: 'assistant', content: contentToStore, timestamp: new Date() };

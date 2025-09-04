@@ -7,14 +7,27 @@ import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 export function ResponseRenderer({ message, timestamp }) {
   const [copiedStates, setCopiedStates] = useState({});
 
-  // Try to parse the response as JSON
+  // Handle different content types
   let structuredResponse = null;
   let displayContent = message.content;
 
-  // Clean up the content first - remove any markdown code blocks
-  let cleanContent = message.content;
-  if (typeof cleanContent === 'string') {
-    cleanContent = cleanContent.trim();
+  // New: if content is already an array from backend, wrap as structured responses
+  if (Array.isArray(message.content)) {
+    structuredResponse = { responses: message.content };
+    displayContent = null;
+  } else if (message.content && typeof message.content === 'object') {
+    if (message.content.responses && Array.isArray(message.content.responses)) {
+      // It's already a structured response object
+      structuredResponse = message.content;
+      displayContent = null;
+    } else if (message.content.type && message.content.content) {
+      // It's a single response object, wrap it in the expected format
+      structuredResponse = { responses: [message.content] };
+      displayContent = null;
+    }
+  } else if (typeof message.content === 'string') {
+    // Try to parse as JSON
+    let cleanContent = message.content.trim();
     
     // Remove markdown code blocks if present
     if (cleanContent.startsWith('```json')) {
@@ -28,32 +41,32 @@ export function ResponseRenderer({ message, timestamp }) {
     }
     
     cleanContent = cleanContent.trim();
-  }
 
-  try {
-    const parsed = JSON.parse(cleanContent);
-    
-    // Response should always be an array due to response schema
-    if (Array.isArray(parsed)) {
-      // Check if all items in array have type and content
-      const validResponses = parsed.every(item => 
-        item && typeof item === 'object' && item.type && item.content
-      );
+    try {
+      const parsed = JSON.parse(cleanContent);
       
-      if (validResponses) {
-        structuredResponse = { responses: parsed };
-        displayContent = null; // Will be handled by multiple response renderer
+      // Response should be an array due to response schema
+      if (Array.isArray(parsed)) {
+        const validResponses = parsed.every(item => 
+          item && typeof item === 'object' && item.type && item.content
+        );
+        
+        if (validResponses) {
+          structuredResponse = { responses: parsed };
+          displayContent = null;
+        }
       }
+      
+    } catch (e) {
+      // Not JSON, use as plain text
+      displayContent = cleanContent;
     }
-    
-  } catch (e) {
-    // Not JSON, use as plain text
-    displayContent = cleanContent;
   }
 
   const copyToClipboard = async (content, id) => {
     try {
-      await navigator.clipboard.writeText(content);
+      const text = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+      await navigator.clipboard.writeText(text);
       setCopiedStates(prev => ({ ...prev, [id]: true }));
       setTimeout(() => {
         setCopiedStates(prev => ({ ...prev, [id]: false }));
@@ -180,6 +193,8 @@ export function ResponseRenderer({ message, timestamp }) {
 
   // Fallback for non-structured responses
   const copyId = `${message.role}-${timestamp}-fallback`;
+  // Ensure displayContent is string to avoid React errors
+  const safeDisplay = typeof displayContent === 'string' ? displayContent : JSON.stringify(displayContent, null, 2);
   return (
     <div className="bg-white text-gray-900 border rounded-bl-none rounded-2xl px-4 py-3 shadow max-w-[85%]">
       <div className="flex items-center justify-between mb-2">
@@ -188,7 +203,7 @@ export function ResponseRenderer({ message, timestamp }) {
           variant="ghost"
           size="sm"
           className="h-6 w-6 p-0"
-          onClick={() => copyToClipboard(displayContent, copyId)}
+          onClick={() => copyToClipboard(safeDisplay, copyId)}
         >
           {copiedStates[copyId] ? (
             <CheckIcon className="w-3 h-3 text-green-600" />
@@ -197,7 +212,7 @@ export function ResponseRenderer({ message, timestamp }) {
           )}
         </Button>
       </div>
-      <p className="whitespace-pre-wrap leading-relaxed">{displayContent}</p>
+      <p className="whitespace-pre-wrap leading-relaxed">{safeDisplay}</p>
       {timestamp && (
         <div className="text-xs mt-1 text-gray-500">
           {new Date(timestamp).toLocaleTimeString([], { 
