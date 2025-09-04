@@ -23,9 +23,12 @@ A full-stack application with React frontend and FastAPI backend, featuring Fire
 - ✅ Tailwind CSS 3 for styling
 - ✅ shadcn/ui components
 - ✅ Firebase Authentication (Google Sign-in)
+- ✅ Firebase Firestore for chat storage
 - ✅ Protected routes
 - ✅ FastAPI backend
 - ✅ Firebase Admin SDK integration
+- ✅ Chat sessions and history management
+- ✅ Real-time chat interface
 - 🔄 Firebase Storage (ready for implementation)
 
 ## Setup Instructions
@@ -41,7 +44,8 @@ A full-stack application with React frontend and FastAPI backend, featuring Fire
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project or select existing one
 3. Enable Authentication and set up Google provider
-4. Enable Storage
+4. Enable Firestore Database
+5. Enable Storage
 5. Get your Firebase config and service account key
 
 ### Frontend Setup
@@ -117,6 +121,14 @@ A full-stack application with React frontend and FastAPI backend, featuring Fire
 ### AI (requires authentication)
 - `POST /api/v1/ai/chat` - Chat with Gemini AI
 - `GET /api/v1/ai/status` - Get AI service status
+
+### Chat Sessions (requires authentication)
+- `POST /api/v1/chat/sessions` - Create new chat session
+- `GET /api/v1/chat/sessions` - Get all user chat sessions
+- `GET /api/v1/chat/sessions/{id}/messages` - Get messages for a session
+- `POST /api/v1/chat/sessions/{id}/messages` - Send message to session
+- `PUT /api/v1/chat/sessions/{id}` - Update session title
+- `DELETE /api/v1/chat/sessions/{id}` - Delete chat session
 
 ## Next Steps
 

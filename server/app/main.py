@@ -25,6 +25,10 @@ app.add_middleware(
 firebase_service  # Initialize Firebase
 gemini_service    # Initialize Gemini
 
+# Import firestore service to initialize it
+from app.services.firestore_service import firestore_service
+firestore_service  # Initialize Firestore
+
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 

@@ -47,6 +47,11 @@ export const API_ENDPOINTS = {
   AI_CHAT: '/ai/chat',
   AI_STATUS: '/ai/status',
   
+  // Chat session endpoints
+  CHAT_SESSIONS: '/chat/sessions',
+  CHAT_SESSION_MESSAGES: (sessionId) => `/chat/sessions/${sessionId}/messages`,
+  CHAT_SESSION_UPDATE: (sessionId) => `/chat/sessions/${sessionId}`,
+  
   // System endpoints
   HEALTH: '/health',
   ROOT: '/',
