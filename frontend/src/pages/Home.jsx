@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-const API_BASE_URL = 'http://localhost:8000';
+import { api } from '@/lib/api';
 
 export function Home() {
   const { user, logout, getIdToken } = useAuth();
@@ -47,25 +46,7 @@ export function Home() {
 
   const sendMessageToBackend = async (message, conversationHistory) => {
     try {
-      const token = await getIdToken();
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message,
-          conversation_history: conversationHistory,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.response;
+      return await api.chat(message, conversationHistory, getIdToken);
     } catch (error) {
       console.error('Error sending message to backend:', error);
       throw error;
