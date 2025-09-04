@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChatService } from '@/lib/chatService';
 import { ChatSidebar } from '@/components/ChatSidebar';
+import { ResponseRenderer } from '@/components/ResponseRenderer';
+import { PromptGuide } from '@/components/PromptGuide';
+import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export function Home() {
   const { user, logout, getIdToken } = useAuth();
@@ -16,6 +19,7 @@ export function Home() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [chatService, setChatService] = useState(null);
+  const [copiedStates, setCopiedStates] = useState({});
   const endRef = useRef(null);
 
   // Initialize chat service
@@ -127,6 +131,18 @@ export function Home() {
     }
   };
 
+  const copyToClipboard = async (content, id) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedStates(prev => ({ ...prev, [id]: true }));
+      setTimeout(() => {
+        setCopiedStates(prev => ({ ...prev, [id]: false }));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -150,8 +166,19 @@ export function Home() {
       // Send message to backend - it will handle adding to Firestore
       const assistantReply = await chatService.sendMessage(currentSessionId, text, messages);
       
+      // Handle structured response - store as JSON string but display properly
+      let contentToStore;
+      if (assistantReply && typeof assistantReply === 'object' && 
+          (assistantReply.type || assistantReply.responses)) {
+        // It's a structured response (single or multiple), store as JSON string
+        contentToStore = JSON.stringify(assistantReply);
+      } else {
+        // It's a plain text response
+        contentToStore = assistantReply;
+      }
+      
       // Add assistant reply to UI
-      const assistantMessage = { role: 'assistant', content: assistantReply, timestamp: new Date() };
+      const assistantMessage = { role: 'assistant', content: contentToStore, timestamp: new Date() };
       setMessages(prev => [...prev, assistantMessage]);
 
       // Update session title if this is the first message
@@ -253,32 +280,49 @@ export function Home() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <p>Start a conversation by typing a message below.</p>
+                  <div className="max-w-4xl mx-auto py-8">
+                    <PromptGuide />
                   </div>
                 ) : (
                   messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div
-                        className={
-                          `max-w-[85%] rounded-2xl px-4 py-3 shadow ` +
-                          (m.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-br-none'
-                            : 'bg-white text-gray-900 border rounded-bl-none')
-                        }
-                      >
-                        <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-                        {m.timestamp && (
-                          <div className={`text-xs mt-1 ${
-                            m.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {new Date(m.timestamp).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
+                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+                      {m.role === 'user' ? (
+                        // User message with copy button
+                        <div className="bg-blue-600 text-white rounded-br-none rounded-2xl px-4 py-3 shadow max-w-[85%] min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-blue-100">You</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-blue-100 hover:text-white hover:bg-blue-700"
+                              onClick={() => copyToClipboard(m.content, `user-${i}`)}
+                            >
+                              {copiedStates[`user-${i}`] ? (
+                                <CheckIcon className="w-3 h-3" />
+                              ) : (
+                                <ClipboardIcon className="w-3 h-3" />
+                              )}
+                            </Button>
                           </div>
-                        )}
-                      </div>
+                          <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                          {m.timestamp && (
+                            <div className="text-xs mt-1 text-blue-100">
+                              {new Date(m.timestamp).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // Assistant message with ResponseRenderer - give it full width
+                        <div className="w-full max-w-[95%] min-w-0">
+                          <ResponseRenderer 
+                            message={m} 
+                            timestamp={m.timestamp}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

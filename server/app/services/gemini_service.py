@@ -21,7 +21,35 @@ class GeminiService:
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             print(f"Gemini configured with API key: {settings.GEMINI_API_KEY[:10]}...")
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            
+            # Define response schema for structured array output
+            response_schema = {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": ["text", "ladder", "plc-code"]
+                        },
+                        "content": {
+                            "type": "string"
+                        }
+                    },
+                    "required": ["type", "content"],
+                    "additionalProperties": False
+                }
+            }
+            
+            self.model = genai.GenerativeModel(
+                'gemini-2.0-flash',
+                generation_config=genai.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=2048,
+                    response_mime_type="application/json",
+                    response_schema=response_schema
+                )
+            )
         else:
             print("Warning: GEMINI_API_KEY not found in environment variables")
             self.model = None
@@ -36,10 +64,50 @@ class GeminiService:
             raise ValueError("Gemini API key not configured")
         
         try:
+            # System prompt for IEC analyst
+            system_prompt = """You are an IEC 61131-3 programming analyst and expert. You specialize in PLC programming, ladder diagrams, and industrial automation.
+
+CRITICAL INSTRUCTIONS:
+1. You MUST ALWAYS return a JSON array - NEVER any other format
+2. NEVER use markdown, code blocks, or any formatting - only pure JSON array
+3. Even for single responses, wrap in array format
+4. Each array item must have "type" and "content" fields
+
+RESPONSE FORMAT (ALWAYS AN ARRAY):
+[
+  {"type": "text", "content": "your text response"},
+  {"type": "ladder", "content": "ASCII ladder diagram"},
+  {"type": "plc-code", "content": "PLC code in IEC 61131-3 format"}
+]
+
+VALID TYPES: "text", "ladder", "plc-code"
+
+RULES:
+- ALWAYS return array format, even for single responses
+- Include text explanation when providing code or diagrams
+- Be concise and precise
+- NO markdown, NO ```json, NO extra text - ONLY JSON array
+
+EXAMPLES:
+User: "What is a timer?"
+Response: [{"type": "text", "content": "A timer is a device that delays actions in PLC programs. It counts time intervals and activates outputs when preset time is reached."}]
+
+User: "Show me a timer implementation"
+Response: [
+  {"type": "text", "content": "Here's a complete timer implementation with ladder diagram and code:"},
+  {"type": "ladder", "content": "---] [---TON---( )---\\n   Start  Timer1  Output"},
+  {"type": "plc-code", "content": "PROGRAM Timer_Example\\nVAR\\n  StartButton: BOOL;\\n  Timer1: TON;\\n  Output: BOOL;\\nEND_VAR\\n\\nTimer1(IN:=StartButton, PT:=T#5s);\\nOutput := Timer1.Q;\\nEND_PROGRAM"}
+]"""
+
             # Prepare conversation history for Gemini
             history = []
+            
+            # Add system prompt as first message
+            history.append({"role": "user", "parts": [system_prompt]})
+            history.append({"role": "model", "parts": ["Understood. I will respond only in valid JSON format with the specified types based on what you ask."]})
+            
             if conversation_history:
-                for msg in conversation_history[-10:]:  # Keep last 10 messages for context
+                for msg in conversation_history[-8:]:  # Keep last 8 messages for context (reduced to save space)
                     if msg.get("role") == "user":
                         history.append({"role": "user", "parts": [msg.get("content", "")]})
                     elif msg.get("role") == "assistant":

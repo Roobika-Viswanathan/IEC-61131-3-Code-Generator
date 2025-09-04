@@ -29,6 +29,10 @@ A full-stack application with React frontend and FastAPI backend, featuring Fire
 - ✅ Firebase Admin SDK integration
 - ✅ Chat sessions and history management
 - ✅ Real-time chat interface
+- ✅ IEC 61131-3 Programming Assistant
+- ✅ Structured JSON responses (text, ladder diagrams, PLC code)
+- ✅ Monaco Editor for code display
+- ✅ Copy-to-clipboard functionality
 - 🔄 Firebase Storage (ready for implementation)
 
 ## Setup Instructions

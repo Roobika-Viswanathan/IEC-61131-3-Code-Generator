@@ -6,7 +6,8 @@ from app.models.session import (
     SessionResponse, SessionListResponse, SessionMessagesResponse,
     ChatMessage
 )
-from app.models.chat import ChatResponse
+from app.models.chat import ChatResponse, StructuredResponse, MultipleStructuredResponse
+import json
 from app.services.firestore_service import firestore_service
 from app.services.gemini_service import gemini_service
 
@@ -169,15 +170,69 @@ async def send_message_to_session(
             conversation_history=conversation_history
         )
         
+        # Parse the JSON response - clean up markdown formatting first
+        structured_response = None
+        clean_response = ai_response.strip()
+        
+        # Remove markdown code blocks if present
+        if clean_response.startswith('```json'):
+            clean_response = clean_response[7:]  # Remove ```json
+        if clean_response.startswith('```'):
+            clean_response = clean_response[3:]   # Remove ```
+        if clean_response.endswith('```'):
+            clean_response = clean_response[:-3]  # Remove ending ```
+        
+        clean_response = clean_response.strip()
+        
+        try:
+            # Parse the response as JSON array (enforced by schema)
+            parsed_response = json.loads(clean_response)
+            valid_types = ["text", "ladder", "plc-code"]
+            
+            # Response should always be an array due to schema enforcement
+            if isinstance(parsed_response, list):
+                responses = []
+                valid_responses = True
+                
+                for resp in parsed_response:
+                    if (isinstance(resp, dict) and 
+                        "type" in resp and "content" in resp and 
+                        resp["type"] in valid_types):
+                        responses.append(StructuredResponse(
+                            type=resp["type"],
+                            content=resp["content"]
+                        ))
+                    else:
+                        valid_responses = False
+                        break
+                
+                if valid_responses and responses:
+                    structured_response = MultipleStructuredResponse(responses=responses)
+                    content_to_store = json.dumps(parsed_response)
+                else:
+                    # Fallback to plain text if validation fails
+                    content_to_store = clean_response
+            else:
+                # Unexpected format (not array), treat as plain text
+                content_to_store = clean_response
+                
+        except json.JSONDecodeError:
+            # If not valid JSON, treat as plain text
+            content_to_store = clean_response
+        
         # Add AI response to session
         firestore_service.add_message_to_session(
             session_id=session_id,
             user_id=user_id,
             role="assistant",
-            content=ai_response
+            content=content_to_store
         )
         
-        return ChatResponse(response=ai_response, success=True)
+        return ChatResponse(
+            response=content_to_store,  # Return the cleaned/parsed content
+            structured_response=structured_response,
+            success=True
+        )
         
     except ValueError as e:
         raise HTTPException(
