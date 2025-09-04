@@ -105,11 +105,18 @@ A full-stack application with React frontend and FastAPI backend, featuring Fire
 
 ## API Endpoints
 
+### System
 - `GET /` - Root endpoint
 - `GET /health` - Health check
-- `GET /protected` - Protected endpoint (requires authentication)
-- `GET /user/profile` - Get user profile
-- `POST /user/verify-token` - Verify token validity
+
+### User (requires authentication)
+- `GET /api/v1/user/profile` - Get user profile
+- `POST /api/v1/user/verify-token` - Verify token validity
+- `GET /api/v1/user/protected` - Protected endpoint example
+
+### AI (requires authentication)
+- `POST /api/v1/ai/chat` - Chat with Gemini AI
+- `GET /api/v1/ai/status` - Get AI service status
 
 ## Next Steps
 
