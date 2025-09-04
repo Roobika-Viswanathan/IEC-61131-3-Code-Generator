@@ -6,11 +6,20 @@ from firebase_admin import credentials, auth
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import json
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print(f"Gemini configured with API key: {GEMINI_API_KEY[:10]}...")
+else:
+    print("Warning: GEMINI_API_KEY not found in environment variables")
 
 app = FastAPI(title="Firebase Auth API", version="1.0.0")
 
@@ -62,6 +71,18 @@ class UserResponse(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     user: Optional[UserResponse] = None
+
+class ChatMessage(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[List[ChatMessage]] = []
+
+class ChatResponse(BaseModel):
+    response: str
+    success: bool = True
 
 # Authentication dependency
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
@@ -138,6 +159,49 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
         "uid": current_user.get("uid"),
         "email": current_user.get("email")
     }
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_gemini(
+    chat_request: ChatRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Send a message to Gemini 2.0 Flash and get a response
+    """
+    try:
+        if not GEMINI_API_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Gemini API key not configured"
+            )        
+        # Initialize Gemini model (using gemini-pro as gemini-2.0-flash might not be available)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Prepare conversation history for Gemini
+        history = []
+        for msg in chat_request.conversation_history[-10:]:  # Keep last 10 messages for context
+            if msg.role == "user":
+                history.append({"role": "user", "parts": [msg.content]})
+            elif msg.role == "assistant":
+                history.append({"role": "model", "parts": [msg.content]})
+        
+        # Start chat session with history
+        chat = model.start_chat(history=history)
+        
+        # Send the current message
+        response = chat.send_message(chat_request.message)
+        
+        return ChatResponse(
+            response=response.text,
+            success=True
+        )
+        
+    except Exception as e:
+        print(f"Error in chat endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get response from Gemini: {str(e)}"
+        )
 
 if __name__ == "__main__":
     import uvicorn

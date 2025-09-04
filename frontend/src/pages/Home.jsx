@@ -1,9 +1,76 @@
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+const API_BASE_URL = 'http://localhost:8000';
 
 export function Home() {
-  const { user, logout } = useAuth();
+  const { user, logout, getIdToken } = useAuth();
+
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const endRef = useRef(null);
+
+  // Load and persist messages per user
+  useEffect(() => {
+    const key = `chat:${user?.uid || 'anon'}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (_) {
+        setMessages(defaultWelcome(user));
+      }
+    } else {
+      setMessages(defaultWelcome(user));
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    const key = `chat:${user?.uid || 'anon'}`;
+    if (messages.length) {
+      localStorage.setItem(key, JSON.stringify(messages));
+    }
+  }, [messages, user?.uid]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  const defaultWelcome = (u) => [
+    {
+      role: 'assistant',
+      content: `Hi${u?.displayName ? `, ${u.displayName}` : ''}! I'm your AI assistant powered by Gemini 2.0 Flash. Ask me anything to get started.`,
+    },
+  ];
+
+  const sendMessageToBackend = async (message, conversationHistory) => {
+    try {
+      const token = await getIdToken();
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message,
+          conversation_history: conversationHistory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Error sending message to backend:', error);
+      throw error;
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -12,36 +79,70 @@ export function Home() {
       console.error('Logout failed:', error);
     }
   };
+  const sendMessage = async (e) => {
+    e?.preventDefault();
+    const text = input.trim();
+    if (!text || isSending) return;
+
+    setIsSending(true);
+    setInput('');
+
+    const userMessage = { role: 'user', content: text };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+
+    try {
+      // Send message to backend with conversation history
+      const assistantReply = await sendMessageToBackend(text, messages);
+      
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: assistantReply }
+      ]);
+    } catch (error) {
+      console.error('Failed to get response:', error);
+      // Fallback error message
+      setMessages((prev) => [
+        ...prev,
+        { 
+          role: 'assistant', 
+          content: 'Sorry, I encountered an error while processing your message. Please try again.' 
+        }
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                My App
-              </h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Bar */}
+      <nav className="bg-white border-b shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded bg-blue-600" />
+              <h1 className="text-lg font-semibold text-gray-900">Chat</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                {user?.photoURL && (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName}
-                    className="h-8 w-8 rounded-full"
-                  />
-                )}
-                <span className="text-sm font-medium text-gray-700">
-                  {user?.displayName || user?.email}
-                </span>
-              </div>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-              >
+            <div className="flex items-center gap-3">
+              {user?.photoURL && (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName}
+                  className="h-8 w-8 rounded-full"
+                />
+              )}
+              <span className="text-sm text-gray-700">
+                {user?.displayName || user?.email}
+              </span>
+              <Button onClick={handleLogout} variant="outline" size="sm">
                 Sign Out
               </Button>
             </div>
@@ -49,77 +150,42 @@ export function Home() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Welcome Card */}
-            <Card className="col-span-full">
-              <CardHeader>
-                <CardTitle>Welcome to Your Dashboard</CardTitle>
-                <CardDescription>
-                  You're successfully authenticated! This is a protected page that only authenticated users can access.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-green-600">Authentication Status: Active</span>
+      {/* Chat Area */}
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto h-full flex flex-col px-4 py-6">
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={
+                    `max-w-[85%] rounded-2xl px-4 py-3 shadow ` +
+                    (m.role === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-none'
+                      : 'bg-white text-gray-900 border rounded-bl-none')
+                  }
+                >
+                  <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* User Info Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="text-sm font-medium text-gray-600">Name:</span>
-                  <p className="text-sm text-gray-900">{user?.displayName || 'Not provided'}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-600">Email:</span>
-                  <p className="text-sm text-gray-900">{user?.email}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-600">User ID:</span>
-                  <p className="text-sm text-gray-900 font-mono">{user?.uid}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Feature Card 1 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Firebase Storage</CardTitle>
-                <CardDescription>
-                  Upload and manage files securely
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Feature Card 2 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>API Integration</CardTitle>
-                <CardDescription>
-                  Connect with your FastAPI backend
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
+            <div ref={endRef} />
           </div>
+
+          {/* Composer */}
+          <form onSubmit={sendMessage} className="mt-4 flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Type your message..."
+                className="min-h-12"
+              />
+            </div>
+            <Button type="submit" disabled={!input.trim() || isSending}>
+              {isSending ? 'Sending...' : 'Send'}
+            </Button>
+          </form>
         </div>
       </main>
     </div>

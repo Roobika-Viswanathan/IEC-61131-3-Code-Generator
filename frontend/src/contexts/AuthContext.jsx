@@ -38,7 +38,6 @@ export function AuthProvider({ children }) {
       throw error;
     }
   };
-
   const logout = async () => {
     try {
       await signOut(auth);
@@ -48,11 +47,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const getIdToken = async () => {
+    if (!user) {
+      throw new Error('No user is signed in');
+    }
+    try {
+      return await user.getIdToken();
+    } catch (error) {
+      console.error('Error getting ID token:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
     signInWithGoogle,
-    logout
+    logout,
+    getIdToken
   };
 
   return (
