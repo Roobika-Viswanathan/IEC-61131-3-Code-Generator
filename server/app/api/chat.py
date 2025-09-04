@@ -197,9 +197,11 @@ async def send_message_to_session(
                 for resp in parsed_response:
                     if (isinstance(resp, dict) and 
                         "type" in resp and "content" in resp and 
-                        resp["type"] in valid_types):                        responses.append(StructuredResponse(
+                        resp["type"] in valid_types):
+                        responses.append(StructuredResponse(
                             type=resp["type"],
-                            content=resp["content"]
+                            content=resp["content"],
+                            validation=resp.get("validation")
                         ))
                     else:
                         valid_responses = False

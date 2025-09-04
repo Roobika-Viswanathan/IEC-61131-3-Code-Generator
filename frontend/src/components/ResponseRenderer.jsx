@@ -99,6 +99,32 @@ export function ResponseRenderer({ message, timestamp }) {
     }
   };
 
+  const renderValidation = (validation) => {
+    if (!validation) return null;
+    const statusColor = validation.status === 'valid' ? 'text-green-700 bg-green-50 border-green-200'
+      : validation.status === 'invalid' ? 'text-red-700 bg-red-50 border-red-200'
+      : 'text-amber-700 bg-amber-50 border-amber-200';
+
+    return (
+      <div className={`mt-2 rounded-lg border ${statusColor} p-3`}> 
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">Validation</span>
+          <span className="text-xs">{validation.executable ? 'Executable' : 'Not Executable'}</span>
+        </div>
+        {validation.reason && (
+          <p className="text-sm mt-1 whitespace-pre-wrap">{validation.reason}</p>
+        )}
+        {Array.isArray(validation.warnings) && validation.warnings.length > 0 && (
+          <ul className="mt-2 list-disc list-inside text-xs space-y-1">
+            {validation.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  };
+
   if (structuredResponse) {
     // All responses are now arrays, so always handle as multiple responses
     if (structuredResponse.responses && Array.isArray(structuredResponse.responses)) {
@@ -126,6 +152,7 @@ export function ResponseRenderer({ message, timestamp }) {
                     </Button>
                   </div>
                   <p className="whitespace-pre-wrap leading-relaxed">{response.content}</p>
+                  {renderValidation(response.validation)}
                 </div>
               );
             } else {
@@ -170,6 +197,9 @@ export function ResponseRenderer({ message, timestamp }) {
                         overviewRulerBorder: false,
                       }}
                     />
+                  </div>
+                  <div className="px-4 pb-3">
+                    {renderValidation(response.validation)}
                   </div>
                 </Card>
               );

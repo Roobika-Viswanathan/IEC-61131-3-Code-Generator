@@ -79,9 +79,13 @@ export function Home() {
         if (typeof content === 'string' && msg.role === 'assistant') {
           try {
             const parsed = JSON.parse(content);
-            // If it successfully parses and looks like a structured response, use the parsed version
-            if (parsed && (Array.isArray(parsed) || (parsed.responses && Array.isArray(parsed.responses)) || (parsed.type && parsed.content))) {
+            // If it successfully parses and looks like a structured response, normalize it
+            if (Array.isArray(parsed)) {
+              content = { responses: parsed };
+            } else if (parsed && parsed.responses && Array.isArray(parsed.responses)) {
               content = parsed;
+            } else if (parsed && parsed.type && parsed.content) {
+              content = { responses: [parsed] };
             }
           } catch (e) {
             // If parsing fails, keep as string

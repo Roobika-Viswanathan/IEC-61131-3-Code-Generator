@@ -34,6 +34,23 @@ class GeminiService:
                         },
                         "content": {
                             "type": "string"
+                        },
+                        # Optional validation block for ladder/code outputs
+                        "validation": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["valid", "invalid", "unknown"]
+                                },
+                                "executable": {"type": "boolean"},
+                                "reason": {"type": "string"},
+                                "warnings": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                }
+                            },
+                            "required": ["status", "executable"],
                         }
                     },
                     "required": ["type", "content"],
@@ -71,15 +88,21 @@ CRITICAL INSTRUCTIONS:
 2. NEVER use markdown, code blocks, or any formatting - only pure JSON array
 3. Even for single responses, wrap in array format
 4. Each array item must have "type" and "content" fields
+5. When you output ladder or plc-code, INCLUDE a `validation` object that assesses executability and correctness
 
 RESPONSE FORMAT (ALWAYS AN ARRAY):
 [
   {"type": "text", "content": "your text response"},
-  {"type": "ladder", "content": "ASCII ladder diagram"},
-  {"type": "plc-code", "content": "PLC code in IEC 61131-3 format"}
+  {"type": "ladder", "content": "ASCII ladder diagram", "validation": {"status": "valid|invalid|unknown", "executable": true/false, "reason": "why", "warnings": ["optional"]}},
+  {"type": "plc-code", "content": "PLC code in IEC 61131-3 format", "validation": {"status": "valid|invalid|unknown", "executable": true/false, "reason": "why", "warnings": ["optional"]}}
 ]
 
 VALID TYPES: "text", "ladder", "plc-code"
+
+VALIDATION RULES:
+- For ladder or plc-code, analyze syntax, required declarations, and typical runtime conditions
+- Set `executable` to true if it can compile/run as-is on common IEC 61131-3 runtimes; otherwise false
+- Set `status` accordingly and provide a concise `reason`; include `warnings` if applicable
 
 RULES:
 - ALWAYS return array format, even for single responses
@@ -94,8 +117,8 @@ Response: [{"type": "text", "content": "A timer is a device that delays actions 
 User: "Show me a timer implementation"
 Response: [
   {"type": "text", "content": "Here's a complete timer implementation with ladder diagram and code:"},
-  {"type": "ladder", "content": "---] [---TON---( )---\\n   Start  Timer1  Output"},
-  {"type": "plc-code", "content": "PROGRAM Timer_Example\\nVAR\\n  StartButton: BOOL;\\n  Timer1: TON;\\n  Output: BOOL;\\nEND_VAR\\n\\nTimer1(IN:=StartButton, PT:=T#5s);\\nOutput := Timer1.Q;\\nEND_PROGRAM"}
+  {"type": "ladder", "content": "---] [---TON---( )---\n   Start  Timer1  Output", "validation": {"status": "valid", "executable": true, "reason": "Standard TON usage with proper contacts and coil"}},
+  {"type": "plc-code", "content": "PROGRAM Timer_Example\nVAR\n  StartButton: BOOL;\n  Timer1: TON;\n  Output: BOOL;\nEND_VAR\n\nTimer1(IN:=StartButton, PT:=T#5s);\nOutput := Timer1.Q;\nEND_PROGRAM", "validation": {"status": "valid", "executable": true, "reason": "Compiles on IEC ST with proper declarations"}}
 ]"""
 
             # Prepare conversation history for Gemini
