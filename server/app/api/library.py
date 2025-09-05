@@ -24,9 +24,14 @@ async def save_to_library(
         
         # Create library entry
         entry_id = str(uuid.uuid4())
+        
+        # Get user's display name from the token
+        user_name = current_user.get("name") or current_user.get("email", "Anonymous User")
+        
         entry_data = {
             "entry_id": entry_id,
             "user_id": user_id,
+            "user_name": user_name,
             "user_question": request.user_question,
             "assistant_response": request.assistant_response,
             "session_id": request.session_id,
@@ -53,19 +58,20 @@ async def get_library_entries(
     current_user: dict = Depends(get_current_user),
     limit: int = 50
 ):
-    """Get all library entries for the current user"""
+    """Get all library entries from all users (global library)"""
     try:
         user_id = current_user.get("uid")
         
-        # Get entries from Firestore
+        # Get all entries from Firestore (global library)
         entries_ref = firestore_service.db.collection("knowledge_library")
-        query = entries_ref.where(filter=FieldFilter("user_id", "==", user_id)).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+        query = entries_ref.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
         
         entries = []
         for doc in query.stream():
             data = doc.to_dict()
             entries.append(LibraryEntryResponse(
                 entry_id=data["entry_id"],
+                user_name=data.get("user_name", "Anonymous User"),
                 user_question=data["user_question"],
                 assistant_response=data["assistant_response"],
                 session_id=data["session_id"],
@@ -92,15 +98,16 @@ async def search_library(
     try:
         user_id = current_user.get("uid")
         
-        # Just get all user entries - let frontend handle search/filtering
+        # Get all entries from all users - let frontend handle search/filtering
         entries_ref = firestore_service.db.collection("knowledge_library")
-        query = entries_ref.where(filter=FieldFilter("user_id", "==", user_id))
+        query = entries_ref
         
         all_entries = []
         for doc in query.stream():
             data = doc.to_dict()
             all_entries.append(LibraryEntryResponse(
                 entry_id=data["entry_id"],
+                user_name=data.get("user_name", "Anonymous User"),
                 user_question=data["user_question"],
                 assistant_response=data["assistant_response"],
                 session_id=data["session_id"],
@@ -126,13 +133,13 @@ async def search_library(
 async def get_library_stats(
     current_user: dict = Depends(get_current_user)
 ):
-    """Get statistics about the user's library"""
+    """Get statistics about the global library"""
     try:
         user_id = current_user.get("uid")
         
-        # Get all user entries
+        # Get all entries from all users
         entries_ref = firestore_service.db.collection("knowledge_library")
-        query = entries_ref.where(filter=FieldFilter("user_id", "==", user_id))
+        query = entries_ref
         
         entries = []
         for doc in query.stream():
@@ -163,42 +170,3 @@ async def get_library_stats(
             detail=f"Failed to get library stats: {str(e)}"
         )
 
-@router.delete("/entries/{entry_id}", response_model=dict)
-async def delete_library_entry(
-    entry_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """Delete a library entry"""
-    try:
-        user_id = current_user.get("uid")
-        
-        # Check if entry exists and belongs to user
-        entry_ref = firestore_service.db.collection("knowledge_library").document(entry_id)
-        entry_doc = entry_ref.get()
-        
-        if not entry_doc.exists:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Library entry not found"
-            )
-        
-        entry_data = entry_doc.to_dict()
-        if entry_data.get("user_id") != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to delete this entry"
-            )
-        
-        # Delete the entry
-        entry_ref.delete()
-        
-        return {"message": "Library entry deleted successfully"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error deleting library entry: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete library entry: {str(e)}"
-        )

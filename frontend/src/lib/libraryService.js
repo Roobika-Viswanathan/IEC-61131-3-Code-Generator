@@ -128,27 +128,4 @@ export class LibraryService {
     }
   }
 
-  /**
-   * Delete a library entry
-   */
-  async deleteLibraryEntry(entryId) {
-    try {
-      const token = await this.getIdToken();
-      const response = await fetch(`${this.baseUrl}/entries/${entryId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error deleting library entry:', error);
-      throw error;
-    }
-  }
 }

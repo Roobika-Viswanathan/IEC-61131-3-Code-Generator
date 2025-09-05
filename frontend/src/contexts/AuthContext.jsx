@@ -2,7 +2,10 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
-  signOut 
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 
@@ -38,6 +41,31 @@ export function AuthProvider({ children }) {
       throw error;
     }
   };
+
+  const signUpWithEmail = async (email, password, username) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      // Update the user's display name with the username
+      await updateProfile(result.user, {
+        displayName: username
+      });
+      return result.user;
+    } catch (error) {
+      console.error('Error signing up with email:', error);
+      throw error;
+    }
+  };
+
+  const signInWithEmail = async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      return result.user;
+    } catch (error) {
+      console.error('Error signing in with email:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -63,6 +91,8 @@ export function AuthProvider({ children }) {
     user,
     loading,
     signInWithGoogle,
+    signUpWithEmail,
+    signInWithEmail,
     logout,
     getIdToken
   };

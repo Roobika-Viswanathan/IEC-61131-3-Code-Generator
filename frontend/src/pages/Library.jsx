@@ -7,7 +7,6 @@ import { LibraryService } from '@/lib/libraryService';
 import { 
   MagnifyingGlassIcon, 
   BookOpenIcon, 
-  TrashIcon,
   CalendarIcon,
   TagIcon,
   ArrowLeftIcon
@@ -115,56 +114,6 @@ export function Library() {
     setSearchResults(null);
   };
 
-  const handleDeleteEntry = async (entryId) => {
-    if (!window.confirm('Are you sure you want to delete this entry?')) {
-      return;
-    }
-
-    try {
-      await libraryService.deleteLibraryEntry(entryId);
-      
-      // Remove from local state
-      const newEntries = entries.filter(entry => entry.entry_id !== entryId);
-      setEntries(newEntries);
-      
-      if (searchResults) {
-        setSearchResults(prev => ({
-          ...prev,
-          entries: prev.entries.filter(entry => entry.entry_id !== entryId),
-          total: prev.total - 1
-        }));
-      }
-      
-      // Recalculate stats locally
-      const total = newEntries.length;
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      
-      const recentCount = newEntries.filter(entry => {
-        const entryDate = new Date(entry.created_at);
-        return entryDate >= sevenDaysAgo;
-      }).length;
-      
-      const categoryMap = {};
-      newEntries.forEach(entry => {
-        const category = entry.category || 'General';
-        categoryMap[category] = (categoryMap[category] || 0) + 1;
-      });
-      
-      const categories = Object.entries(categoryMap)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-      
-      setStats({
-        total_entries: total,
-        recent_entries_count: recentCount,
-        categories
-      });
-    } catch (error) {
-      console.error('Error deleting entry:', error);
-      alert('Failed to delete entry. Please try again.');
-    }
-  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString([], {
@@ -205,7 +154,7 @@ export function Library() {
               </Button>
               <div className="h-6 w-px bg-gray-300" />
               <BookOpenIcon className="w-6 h-6 text-blue-600" />
-              <h1 className="text-lg font-semibold text-gray-900">Knowledge Library</h1>
+              <h1 className="text-lg font-semibold text-gray-900">Global Knowledge Library</h1>
             </div>
             <div className="flex items-center gap-3">
               {user?.photoURL && (
@@ -309,24 +258,22 @@ export function Library() {
           <div className="space-y-6">
             {displayEntries.map((entry) => (
               <Card key={entry.entry_id} className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                    <div className="flex items-center gap-2">
                       <CalendarIcon className="w-4 h-4" />
                       {formatDate(entry.created_at)}
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">
-                      {entry.user_question}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>
+                      Added by {entry.user_name || 'Anonymous User'}
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteEntry(entry.entry_id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </Button>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    {entry.user_question}
+                  </h3>
                 </div>
                 
                 <div className="bg-gray-50 rounded-lg p-4">

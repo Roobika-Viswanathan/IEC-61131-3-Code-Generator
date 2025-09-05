@@ -5,6 +5,7 @@ from datetime import datetime
 class LibraryEntry(BaseModel):
     entry_id: Optional[str] = None
     user_id: str
+    user_name: Optional[str] = None  # Name of the person who added this
     user_question: str
     assistant_response: str
     session_id: str
@@ -29,6 +30,7 @@ class LibrarySearchRequest(BaseModel):
 
 class LibraryEntryResponse(BaseModel):
     entry_id: str
+    user_name: Optional[str] = None
     user_question: str
     assistant_response: str
     session_id: str

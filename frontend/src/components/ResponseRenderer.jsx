@@ -159,7 +159,7 @@ export function ResponseRenderer({
                       )}
                     </Button>
                   </div>
-                  <p className="whitespace-pre-wrap leading-relaxed">{response.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{typeof response.content === 'string' ? response.content.replace(/\\n/g, '\n') : response.content}</p>
                   {renderValidation(response.validation)}
                 </div>
               );
@@ -185,12 +185,12 @@ export function ResponseRenderer({
                     <Editor
                       height="100%"
                       defaultLanguage={getLanguageFromType(response.type)}
-                      value={response.content}
+                      value={typeof response.content === 'string' ? response.content.replace(/\\n/g, '\n') : response.content}
                       options={{
                         readOnly: true,
                         minimap: { enabled: false },
                         scrollBeyondLastLine: false,
-                        wordWrap: 'off',
+                        wordWrap: 'on',
                         fontSize: 13,
                         fontFamily: 'Consolas, "Courier New", monospace',
                         theme: 'vs-light',
@@ -259,7 +259,7 @@ export function ResponseRenderer({
           )}
         </Button>
       </div>
-      <p className="whitespace-pre-wrap leading-relaxed">{safeDisplay}</p>
+      <p className="whitespace-pre-wrap leading-relaxed">{typeof safeDisplay === 'string' ? safeDisplay.replace(/\\n/g, '\n') : safeDisplay}</p>
       {timestamp && (
         <div className="text-xs mt-1 text-gray-500">
           {new Date(timestamp).toLocaleTimeString([], { 
