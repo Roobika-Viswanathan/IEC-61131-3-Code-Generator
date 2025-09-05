@@ -103,6 +103,30 @@ export class ChatService {
   async sendMessage(sessionId, message, conversationHistory = []) {
     try {
       const token = await this.getIdToken();
+      
+      // Clean up conversation history format for backend
+      const cleanHistory = conversationHistory.map((msg) => {
+        let content = msg.content;
+        
+        // If content is an object (structured response), convert to string
+        if (typeof content === 'object' && content !== null) {
+          if (content.responses && Array.isArray(content.responses)) {
+            // Extract text content from structured responses
+            content = content.responses.map(r => r.content || '').join('\n\n');
+          } else {
+            // Fallback: stringify the object
+            content = JSON.stringify(content);
+          }
+        }
+        
+        return {
+          role: msg.role,
+          content: String(content), // Ensure it's always a string
+          // Convert timestamp to ISO string if it exists, otherwise omit
+          ...(msg.timestamp && { timestamp: new Date(msg.timestamp).toISOString() })
+        };
+      });
+      
       const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: {
@@ -111,7 +135,7 @@ export class ChatService {
         },
         body: JSON.stringify({
           message,
-          conversation_history: conversationHistory,
+          conversation_history: cleanHistory,
         }),
       });
 

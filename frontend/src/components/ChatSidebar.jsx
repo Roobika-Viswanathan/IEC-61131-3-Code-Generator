@@ -64,7 +64,7 @@ export function ChatSidebar({
   };
 
   return (
-    <div className="w-80 h-full bg-gray-50 border-r border-gray-200 flex flex-col">
+    <div className="w-80 h-screen bg-gray-50 border-r border-gray-200 flex flex-col fixed left-0 top-0 z-10">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <Button 
@@ -141,15 +141,7 @@ export function ChatSidebar({
                         <h3 className="font-medium text-sm truncate">
                           {session.title}
                         </h3>
-                        {session.last_message && (
-                          <p className="text-xs text-gray-500 truncate mt-1">
-                            {session.last_message}
-                          </p>
-                        )}
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400">
-                            {session.message_count} messages
-                          </span>
                           <span className="text-xs text-gray-400">
                             {formatDate(session.updated_at)}
                           </span>

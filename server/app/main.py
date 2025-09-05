@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.api.main import api_router
 from app.services.firebase_service import firebase_service
@@ -28,6 +30,23 @@ gemini_service    # Initialize Gemini
 # Import firestore service to initialize it
 from app.services.firestore_service import firestore_service
 firestore_service  # Initialize Firestore
+
+# Add exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Custom handler for request validation errors to provide better debugging info
+    """
+    print(f"Validation error on {request.method} {request.url}")
+    print(f"Validation errors: {exc.errors()}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Request validation failed",
+            "errors": exc.errors()
+        }
+    )
 
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")

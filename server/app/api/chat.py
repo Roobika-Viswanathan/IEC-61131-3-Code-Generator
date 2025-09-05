@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.exceptions import RequestValidationError
 from typing import List
 from app.core.dependencies import get_current_user
 from app.models.session import (
@@ -134,6 +135,11 @@ async def send_message_to_session(
 ):
     """Send a message to a specific chat session and get AI response"""
     try:
+        # Debug logging for request validation
+        print(f"Request received - message: '{request.message}', history length: {len(request.conversation_history)}")
+        for i, msg in enumerate(request.conversation_history):
+            print(f"  Message {i}: role={msg.role}, content_length={len(msg.content)}, timestamp={msg.timestamp}")
+        
         user_id = current_user.get("uid")
         
         # Verify AI service is available

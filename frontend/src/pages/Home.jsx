@@ -3,13 +3,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChatService } from '@/lib/chatService';
+import { LibraryService } from '@/lib/libraryService';
 import { ChatSidebar } from '@/components/ChatSidebar';
 import { ResponseRenderer } from '@/components/ResponseRenderer';
 import { PromptGuide } from '@/components/PromptGuide';
-import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { ClipboardIcon, CheckIcon, BookOpenIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
 
 export function Home() {
   const { user, logout, getIdToken } = useAuth();
+  const navigate = useNavigate();
 
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
@@ -19,14 +22,18 @@ export function Home() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [chatService, setChatService] = useState(null);
+  const [libraryService, setLibraryService] = useState(null);
   const [copiedStates, setCopiedStates] = useState({});
+  const [libraryEntries, setLibraryEntries] = useState([]);
   const endRef = useRef(null);
 
-  // Initialize chat service
+  // Initialize services
   useEffect(() => {
     if (user && getIdToken) {
-      const service = new ChatService(user, getIdToken);
-      setChatService(service);
+      const chatSvc = new ChatService(user, getIdToken);
+      const librarySvc = new LibraryService(user, getIdToken);
+      setChatService(chatSvc);
+      setLibraryService(librarySvc);
     }
   }, [user, getIdToken]);
 
@@ -36,6 +43,42 @@ export function Home() {
       loadSessions();
     }
   }, [chatService]);
+
+  // Load library entries when library service is ready
+  useEffect(() => {
+    if (libraryService) {
+      loadLibraryEntries();
+    }
+  }, [libraryService]);
+
+  const loadLibraryEntries = async () => {
+    try {
+      const entries = await libraryService.getLibraryEntries();
+      setLibraryEntries(entries);
+    } catch (error) {
+      console.error('Error loading library entries:', error);
+    }
+  };
+
+  const isMessageInLibrary = (userMessage, assistantMessage) => {
+    if (!userMessage || !assistantMessage) return false;
+    
+    // Convert assistant message content to string for comparison
+    let assistantContent = assistantMessage.content;
+    if (typeof assistantContent === 'object' && assistantContent !== null) {
+      if (assistantContent.responses && Array.isArray(assistantContent.responses)) {
+        assistantContent = assistantContent.responses.map(r => r.content || '').join('\n\n');
+      } else {
+        assistantContent = JSON.stringify(assistantContent);
+      }
+    }
+    
+    // Check if this exact Q&A pair exists in library
+    return libraryEntries.some(entry => 
+      entry.user_question === userMessage && 
+      entry.assistant_response === assistantContent
+    );
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -163,6 +206,30 @@ export function Home() {
     }
   };
 
+  const handleSaveToLibrary = async (userMessage, assistantMessage) => {
+    try {
+      if (!libraryService || !currentSessionId) return;
+      
+      await libraryService.saveToLibrary(
+        userMessage, 
+        assistantMessage, 
+        currentSessionId
+      );
+      
+      // Reload library entries to update the check
+      await loadLibraryEntries();
+      
+    } catch (error) {
+      console.error('Error saving to library:', error);
+      throw error;
+    }
+  };
+
+  const handleMarkInaccurate = (userMessage, assistantMessage) => {
+    // For now, just log. Could be extended to send feedback to improve the model
+    console.log('User marked as inaccurate:', { userMessage, assistantMessage });
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -219,7 +286,7 @@ export function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       {/* Chat Sidebar */}
       <ChatSidebar
         sessions={sessions}
@@ -232,7 +299,7 @@ export function Home() {
       />
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="ml-80 flex flex-col min-h-screen">
         {/* Header */}
         <nav className="bg-white border-b shadow-sm">
           <div className="px-4 sm:px-6 lg:px-8">
@@ -247,6 +314,15 @@ export function Home() {
                 </h1>
               </div>
               <div className="flex items-center gap-3">
+                <Button 
+                  onClick={() => navigate('/library')} 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <BookOpenIcon className="w-4 h-4" />
+                  Library
+                </Button>
                 {user?.photoURL && (
                   <img
                     src={user.photoURL}
@@ -266,7 +342,7 @@ export function Home() {
         </nav>
 
         {/* Chat Content */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col pb-24">
           {isLoadingMessages ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -294,75 +370,91 @@ export function Home() {
                     <PromptGuide />
                   </div>
                 ) : (
-                  messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-                      {m.role === 'user' ? (
-                        // User message with copy button
-                        <div className="bg-blue-600 text-white rounded-br-none rounded-2xl px-4 py-3 shadow max-w-[85%] min-w-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-blue-100">You</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-blue-100 hover:text-white hover:bg-blue-700"
-                              onClick={() => copyToClipboard(m.content, `user-${i}`)}
-                            >
-                              {copiedStates[`user-${i}`] ? (
-                                <CheckIcon className="w-3 h-3" />
-                              ) : (
-                                <ClipboardIcon className="w-3 h-3" />
-                              )}
-                            </Button>
-                          </div>
-                          <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-                          {m.timestamp && (
-                            <div className="text-xs mt-1 text-blue-100">
-                              {new Date(m.timestamp).toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                  messages.map((m, i) => {
+                    // Find the corresponding user message for assistant responses
+                    const userMessage = m.role === 'assistant' && i > 0 && messages[i-1].role === 'user' 
+                      ? messages[i-1].content 
+                      : null;
+                    
+                    // Check if this message pair is already saved in library
+                    const isSaved = userMessage ? isMessageInLibrary(userMessage, m) : false;
+                    
+                    return (
+                      <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+                        {m.role === 'user' ? (
+                          // User message with copy button
+                          <div className="bg-blue-600 text-white rounded-br-none rounded-2xl px-4 py-3 shadow max-w-[85%] min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-blue-100">You</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-blue-100 hover:text-white hover:bg-blue-700"
+                                onClick={() => copyToClipboard(m.content, `user-${i}`)}
+                              >
+                                {copiedStates[`user-${i}`] ? (
+                                  <CheckIcon className="w-3 h-3" />
+                                ) : (
+                                  <ClipboardIcon className="w-3 h-3" />
+                                )}
+                              </Button>
                             </div>
-                          )}
-                        </div>
-                      ) : (
-                        // Assistant message with ResponseRenderer - give it full width
-                        <div className="w-full max-w-[95%] min-w-0">
-                          <ResponseRenderer 
-                            message={m} 
-                            timestamp={m.timestamp}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))
+                            <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                            {m.timestamp && (
+                              <div className="text-xs mt-1 text-blue-100">
+                                {new Date(m.timestamp).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          // Assistant message with ResponseRenderer - give it full width
+                          <div className="w-full max-w-[95%] min-w-0">
+                            <ResponseRenderer 
+                              message={m} 
+                              timestamp={m.timestamp}
+                              userMessage={userMessage}
+                              onSaveToLibrary={handleSaveToLibrary}
+                              onMarkInaccurate={handleMarkInaccurate}
+                              isSaved={isSaved}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
                 <div ref={endRef} />
-              </div>
-
-              {/* Message Input */}
-              <div className="border-t bg-white p-4">
-                <form onSubmit={sendMessage} className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={onKeyDown}
-                      placeholder={currentSessionId ? "Type your message..." : "Please select or create a chat session"}
-                      className="min-h-12"
-                      disabled={!currentSessionId || isSending}
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    disabled={!input.trim() || isSending || !currentSessionId}
-                  >
-                    {isSending ? 'Sending...' : 'Send'}
-                  </Button>
-                </form>
               </div>
             </div>
           )}
         </main>
+
+        {/* Fixed Message Input */}
+        {currentSessionId && (
+          <div className="fixed bottom-0 left-80 right-0 border-t bg-white p-4 z-10">
+            <form onSubmit={sendMessage} className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder="Type your message..."
+                  className="min-h-12"
+                  disabled={isSending}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                disabled={!input.trim() || isSending}
+              >
+                {isSending ? 'Sending...' : 'Send'}
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,8 +3,16 @@ import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { AccuracyFeedback } from './AccuracyFeedback';
 
-export function ResponseRenderer({ message, timestamp }) {
+export function ResponseRenderer({ 
+  message, 
+  timestamp, 
+  userMessage, 
+  onSaveToLibrary, 
+  onMarkInaccurate,
+  isSaved = false 
+}) {
   const [copiedStates, setCopiedStates] = useState({});
 
   // Handle different content types
@@ -213,6 +221,15 @@ export function ResponseRenderer({ message, timestamp }) {
               })}
             </div>
           )}
+          {userMessage && onSaveToLibrary && (
+            <AccuracyFeedback
+              userMessage={userMessage}
+              assistantMessage={message}
+              onSaveToLibrary={onSaveToLibrary}
+              onMarkInaccurate={onMarkInaccurate}
+              isSaved={isSaved}
+            />
+          )}
         </div>
       );
     }
@@ -250,6 +267,15 @@ export function ResponseRenderer({ message, timestamp }) {
             minute: '2-digit' 
           })}
         </div>
+      )}
+      {userMessage && onSaveToLibrary && (
+        <AccuracyFeedback
+          userMessage={userMessage}
+          assistantMessage={message}
+          onSaveToLibrary={onSaveToLibrary}
+          onMarkInaccurate={onMarkInaccurate}
+          isSaved={isSaved}
+        />
       )}
     </div>
   );
