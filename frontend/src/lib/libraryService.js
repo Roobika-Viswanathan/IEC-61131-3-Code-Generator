@@ -2,7 +2,7 @@ export class LibraryService {
   constructor(user, getIdToken) {
     this.user = user;
     this.getIdToken = getIdToken;
-    this.baseUrl = 'http://localhost:8000/api/v1/library';
+    this.baseUrl = 'https://sujay-jmg9.onrender.com/api/v1/library';
   }
 
   /**
