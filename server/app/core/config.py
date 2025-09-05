@@ -12,6 +12,7 @@ class Settings:
     
     # Firebase settings
     FIREBASE_SERVICE_ACCOUNT_PATH: str = "firebase-service-account.json"
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "")
     
     # Gemini AI settings
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

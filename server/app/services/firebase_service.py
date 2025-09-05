@@ -1,4 +1,5 @@
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, auth
 from app.core.config import settings
@@ -26,13 +27,23 @@ class FirebaseService:
         except ValueError:
             # App doesn't exist, so initialize it
             try:
-                # For development, use service account key file
-                if os.path.exists(settings.FIREBASE_SERVICE_ACCOUNT_PATH):
+                # First, try to use service account JSON from environment variable
+                if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+                    try:
+                        service_account_info = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+                        cred = credentials.Certificate(service_account_info)
+                        firebase_admin.initialize_app(cred)
+                        print("Firebase Admin SDK initialized with service account from environment variable.")
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing Firebase service account JSON from environment: {e}")
+                        raise
+                # Fallback to service account key file
+                elif os.path.exists(settings.FIREBASE_SERVICE_ACCOUNT_PATH):
                     cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_PATH)
                     firebase_admin.initialize_app(cred)
-                    print("Firebase Admin SDK initialized with service account.")
+                    print("Firebase Admin SDK initialized with service account file.")
                 else:
-                    # Initialize with environment variables (for production)
+                    # Initialize with default application credentials (for production)
                     cred = credentials.ApplicationDefault()
                     firebase_admin.initialize_app(cred)
                     print("Firebase Admin SDK initialized with default credentials.")
