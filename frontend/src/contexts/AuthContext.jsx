@@ -77,10 +77,15 @@ export function AuthProvider({ children }) {
 
   const getIdToken = async () => {
     if (!user) {
+      console.error('No user is signed in when trying to get ID token');
       throw new Error('No user is signed in');
     }
     try {
-      return await user.getIdToken();
+      console.log('Getting ID token for user:', user.email);
+      // Force refresh to ensure token is valid
+      const token = await user.getIdToken(true);
+      console.log('ID token obtained successfully, length:', token.length);
+      return token;
     } catch (error) {
       console.error('Error getting ID token:', error);
       throw error;
