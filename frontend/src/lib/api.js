@@ -1,5 +1,5 @@
 // API configuration and utilities
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://sujay-jmg9.onrender.com';
 const API_V1_BASE = `${API_BASE_URL}/api/v1`;
 
 /**
