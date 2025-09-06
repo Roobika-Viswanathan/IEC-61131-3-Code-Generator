@@ -1,4 +1,4 @@
-🤖 AI-Powered IEC 61131-3 Code Generator – Model 2 (Backup)
+**🤖 AI-Powered IEC 61131-3 Code Generator – Model 2 (Backup)******
 
 A Streamlit-based AI application that converts natural language control logic into IEC 61131-3 Structured Text (ST) code and flowcharts.
 This is Model 2, a backup version of our main IEC Code Generator, hosted on Streamlit for reliability and continuous availability.
