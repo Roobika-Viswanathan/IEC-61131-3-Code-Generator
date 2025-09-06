@@ -1,77 +1,84 @@
-# 🤖 AI-Powered IEC 61131-3 Code Generator
+🤖 AI-Powered IEC 61131-3 Code Generator – Model 2 (Backup)
 
-A **Streamlit-based app** that converts **natural language control logic** into **IEC 61131-3 Structured Text (ST) code** and **flowcharts**.  
-Designed for PLC programmers and automation engineers to accelerate development with AI assistance.  
+A Streamlit-based AI application that converts natural language control logic into IEC 61131-3 Structured Text (ST) code and flowcharts.
+This is Model 2, a backup version of our main IEC Code Generator, hosted on Streamlit for reliability and continuous availability.
 
----
+✨ Features
 
-## ✨ Features
+🔧 Generate PLC Code – Natural language → IEC 61131-3 Structured Text
 
-- 🔧 **Generate PLC Code** – Natural language → IEC 61131-3 Structured Text  
-- 📊 **Generate Flowcharts** – Mermaid diagrams of control logic  
-- ⚡ **Clarification Agent** – Automatically asks questions when inputs are ambiguous  
-- ✅ **Code Validator** – Checks syntax, conventions, and best practices  
-- 🔧 **Code Refiner** – Add safety interlocks, optimize performance, or improve readability  
-- 💾 **Download Support** – Save generated PLC code as `.st` files  
-- 🖥️ **Session Context** – Maintains conversation history and clarifications  
+📊 Generate Flowcharts – Mermaid diagrams representing control logic
 
----
+⚡ Clarification Agent – Asks follow-up questions if input is unclear
 
-## 🛠️ Tech Stack
+✅ Code Validator – Ensures syntax, conventions, and best practices
 
-- [Streamlit](https://streamlit.io/) – Web UI  
-- [Phi Agents](https://github.com/phi-agent/phi) – AI agent orchestration  
-- [Groq](https://groq.com/) – LLM inference engine  
-- [DuckDuckGo API](https://duckduckgo.com/) – Knowledge lookup  
+🔧 Code Refiner – Adds safety interlocks, optimizes performance, and improves readability
 
----
+💾 Download Support – Export generated PLC code as .st files
 
-## 📂 Project Structure
-├── app.py # Main Streamlit app
-├── requirements.txt # Python dependencies
-├── README.md # Documentation
-└── .env # API keys and environment variables
+🖥️ Session Context – Maintains conversation history for consistent results
 
----
+🛠️ Tech Stack
 
-## ⚙️ Installation
+Streamlit
+ – Web interface
 
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/Roobiii/ABB_Hackathon.git
-   cd ABB_Hackathon
-Create and activate a virtual environment:
+Phi Agents
+ – AI orchestration
+
+Groq
+ – LLM inference engine
+
+DuckDuckGo API
+ – Knowledge search
+
+📂 Project Structure
+├── app.py              # Main Streamlit app  
+├── requirements.txt    # Python dependencies  
+├── README.md           # Documentation  
+└── .env                # API keys and environment variables  
+
+⚙️ Installation
+
+1️⃣ Clone the repository:
+
+git clone https://github.com/Roobiii/ABB_Hackathon.git
+cd ABB_Hackathon
+
+
+2️⃣ Create and activate a virtual environment:
 
 python -m venv venv
-source venv/bin/activate   # macOS/Linux
-venv\Scripts\activate      # Windows
+# macOS/Linux
+source venv/bin/activate
+# Windows
+venv\Scripts\activate
 
 
-Install dependencies:
+3️⃣ Install dependencies:
 
 pip install -r requirements.txt
 
 
-Add your API keys in a .env file:
+4️⃣ Add your API keys to .env:
 
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY="your_groq_api_key_here"
 
 ▶️ Usage
 
-Run the Streamlit app:
+Run the app:
 
 streamlit run app.py
 
 
-Then open the provided localhost link in your browser.
+Open the provided localhost link in your browser.
 
-📊 Example Input
+📊 Example
 
-Natural Language:
+Input (Natural Language):
 
-Turn ON motor when temperature exceeds 50C and pressure is below 100 bar, 
-turn OFF when temperature drops below 45C.
-
+Turn ON motor when temperature exceeds 50C and pressure is below 100 bar, turn OFF when temperature drops below 45C.
 
 Generated IEC 61131-3 Structured Text:
 
@@ -102,11 +109,8 @@ flowchart TD
 
 🧑‍💻 Contributing
 
-Contributions are welcome! Please fork the repo and submit a PR.
+Contributions are welcome! Fork the repo and submit a PR.
 
 📜 License
 
-This project is licensed under the MIT License.
-
-
----
+Licensed under the MIT License.
