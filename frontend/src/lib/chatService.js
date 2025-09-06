@@ -28,7 +28,7 @@ export class ChatService {
   async createSession(title = "New Chat") {
     try {
       const token = await this.getIdToken();
-      const response = await fetch('http://localhost:8000/api/v1/chat/sessions', {
+      const response = await fetch('https://sujay-jmg9.onrender.com/api/v1/chat/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export class ChatService {
   async getSessions() {
     try {
       const token = await this.getIdToken();
-      const response = await fetch('http://localhost:8000/api/v1/chat/sessions', {
+      const response = await fetch('https://sujay-jmg9.onrender.com/api/v1/chat/sessions', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -79,7 +79,7 @@ export class ChatService {
   async getSessionMessages(sessionId) {
     try {
       const token = await this.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${sessionId}/messages`, {
+      const response = await fetch(`https://sujay-jmg9.onrender.com/api/v1/chat/sessions/${sessionId}/messages`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -127,7 +127,7 @@ export class ChatService {
         };
       });
       
-      const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${sessionId}/messages`, {
+      const response = await fetch(`https://sujay-jmg9.onrender.com/api/v1/chat/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export class ChatService {
   async updateSessionTitle(sessionId, title) {
     try {
       const token = await this.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${sessionId}`, {
+      const response = await fetch(`https://sujay-jmg9.onrender.com/api/v1/chat/sessions/${sessionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ export class ChatService {
   async deleteSession(sessionId) {
     try {
       const token = await this.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${sessionId}`, {
+      const response = await fetch(`https://sujay-jmg9.onrender.com/api/v1/chat/sessions/${sessionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
