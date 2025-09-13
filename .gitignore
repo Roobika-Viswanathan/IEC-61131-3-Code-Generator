@@ -2,9 +2,10 @@
 __pycache__/
 *.pyc
 
-# Env + secrets
+# Secrets
 .env
-*.stackdump
-*.zip
 firebase-service-account.json
 
+# Misc
+*.stackdump
+*.zip
