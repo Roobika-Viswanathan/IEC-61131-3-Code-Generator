@@ -1,4 +1,10 @@
+# Python cache
 __pycache__/
 *.pyc
+
+# Env + secrets
+.env
 *.stackdump
 *.zip
+firebase-service-account.json
+
