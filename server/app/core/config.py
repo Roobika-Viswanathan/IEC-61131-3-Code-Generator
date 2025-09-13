@@ -1,3 +1,4 @@
+import json
 import os
 from dotenv import load_dotenv
 
@@ -11,7 +12,7 @@ class Settings:
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     
     # Firebase settings
-    FIREBASE_SERVICE_ACCOUNT_PATH: str = "firebase-service-account.json"
+    FIREBASE_SERVICE_ACCOUNT_PATH: str = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "")
     
     # Gemini AI settings
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
