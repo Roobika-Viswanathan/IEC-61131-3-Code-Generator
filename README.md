@@ -2,6 +2,10 @@
 
 A full-stack application with React frontend and FastAPI backend, featuring Firebase authentication and storage.
 
+🚀 Live Demo
+
+👉 Visit the App Here
+
 ## Project Structure
 
 ```
